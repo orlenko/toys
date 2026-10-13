@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Model 209 Recorder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,500&family=IBM+Plex+Mono:wght@400;500&family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: instrument on the left, operator panel on the right; stacks on phones.
+   Two styles: Classic (paper chart, follows light/dark) and Scope (dark instrument). */
+:root {
+  --bg: #d9dddb; --panel: #eef0ee; --line: #b9c0bd; --fg: #1b2124; --muted: #5b6669;
+  --accent: #2f6a49; --crit: #b0302b; --chip: rgba(47,106,73,.14);
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111415; --panel: #1a1f20; --line: #2d3537; --fg: #dde3e0; --muted: #8e9a9c; --accent: #6fbf8e; --crit: #ff6b5e; --chip: rgba(111,191,142,.16); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #111415; --panel: #1a1f20; --line: #2d3537; --fg: #dde3e0; --muted: #8e9a9c; --accent: #6fbf8e; --crit: #ff6b5e; --chip: rgba(111,191,142,.16); color-scheme: dark;
+}
+:root[data-style="scope"] {
+  --bg: #06090d; --panel: #0b1117; --line: #1b2833; --fg: #d5e3ea; --muted: #6c8594;
+  --accent: #3fd6e8; --crit: #ff5a4f; --chip: rgba(63,214,232,.16);
+  --display: "Chakra Petch", "Arial Narrow", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { margin: 0; }
+body { font-family: var(--body); font-size: 15px; line-height: 1.5; transition: background .3s; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 40px; display: grid; gap: 24px; }
+header { display: grid; gap: 4px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+chart-recorder { width: 100%; max-width: 660px; justify-self: center; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 18px; display: grid; gap: 18px; min-width: 0; }
+.label { font-family: var(--mono); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; color: var(--muted); }
+.read { display: grid; gap: 2px; }
+.big { font-family: var(--mono); font-weight: 500; font-size: 38px; line-height: 1.05; font-variant-numeric: tabular-nums; color: var(--accent); transition: color .2s; }
+.big.alert { color: var(--crit); }
+.big small { font-size: 15px; color: var(--muted); margin-left: 6px; }
+.status { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; color: var(--muted); }
+.status.alert { color: var(--crit); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.stat b { display: block; font-family: var(--mono); font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.group { display: grid; gap: 8px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 7px 4px; font-family: var(--mono); font-size: 12px; cursor: pointer; border-left: 1px solid var(--line); user-select: none; color: var(--muted); }
+.seg label:first-of-type { border-left: 0; }
+.seg input:checked + label { background: var(--chip); color: var(--accent); font-weight: 500; }
+.seg input:disabled + label { opacity: .3; cursor: not-allowed; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -3px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=range]:disabled { opacity: .35; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.row span { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.taps { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.btn { font-family: var(--display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; padding: 10px 12px; border-radius: 4px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--chip); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn.ghost { border-color: var(--line); color: var(--fg); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note { font-size: 12px; color: var(--muted); margin: 0; font-family: var(--mono); }
+code { font-family: var(--mono); font-size: 12px; color: var(--accent); background: var(--chip); padding: 1px 4px; border-radius: 2px; }
+.legend { height: 10px; border-radius: 2px; }
+.legend-keys { display: flex; justify-content: space-between; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .big, body { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Circular chart recorder · history</div>
+    <h1>Model 209 Recorder</h1>
+    <p>The chart turns once per period and keeps its history. The trace is coloured by age: it starts in ink at the pen, then shifts through the gradient and fades out, so you can tell when each part was drawn.</p>
+  </header>
+
+  <div class="main">
+    <chart-recorder id="rec" aria-label="Circular chart recorder showing a live trace with fading history"></chart-recorder>
+
+    <div class="panel">
+      <div class="group">
+        <div class="label">Style</div>
+        <div class="seg">
+          <input type="radio" name="style" id="st-classic" value="classic" checked><label for="st-classic">Classic</label>
+          <input type="radio" name="style" id="st-scope" value="scope"><label for="st-scope">Scope</label>
+        </div>
+      </div>
+
+      <div class="read">
+        <div class="label" id="mname">—</div>
+        <div class="big" id="bigwrap"><span id="val">—</span><small id="unit"></small></div>
+        <div class="status" id="status">NOMINAL</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Peak, last turn</div><b id="hi">—</b></div>
+        <div class="stat"><div class="label">Low, last turn</div><b id="lo">—</b></div>
+        <div class="stat"><div class="label">Average</div><b id="avg">—</b></div>
+        <div class="stat"><div class="label" id="totlbl">Last turn total</div><b id="tot">—</b></div>
+      </div>
+
+      <div class="group">
+        <div class="row"><span class="label">History</span><span id="histval">—</span></div>
+        <input type="range" id="hist" min="1" max="20" step="1" value="10" aria-label="Turns kept on the chart">
+        <div class="seg">
+          <input type="radio" name="hmode" id="hm-smooth" value="smooth" checked><label for="hm-smooth">Smooth</label>
+          <input type="radio" name="hmode" id="hm-stepped" value="stepped"><label for="hm-stepped">Per turn</label>
+        </div>
+        <div class="legend" id="legend" aria-hidden="true"></div>
+        <div class="legend-keys"><span>Now</span><span id="lgEnd">—</span></div>
+      </div>
+
+      <div class="group">
+        <div class="label">Metric</div>
+        <div class="seg">
+          <input type="radio" name="metric" id="m-temp" value="temp" checked><label for="m-temp">°F</label>
+          <input type="radio" name="metric" id="m-tps" value="tps"><label for="m-tps">TPS</label>
+          <input type="radio" name="metric" id="m-tpm" value="tpm"><label for="m-tpm">TPM</label>
+          <input type="radio" name="metric" id="m-tph" value="tph"><label for="m-tph">TPH</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="row"><span class="label">Speed</span><span id="period">—</span></div>
+        <div class="seg" id="speedSeg"></div>
+      </div>
+
+      <div class="group">
+        <div class="label">Source</div>
+        <div class="seg">
+          <input type="radio" name="src" id="src-sim" value="sim" checked><label for="src-sim">Simulated</label>
+          <input type="radio" name="src" id="src-tap" value="tap"><label for="src-tap">Taps</label>
+          <input type="radio" name="src" id="src-man" value="man"><label for="src-man">Manual</label>
+        </div>
+        <div class="taps">
+          <button class="btn" id="tap1" disabled>Record +1</button>
+          <button class="btn ghost" id="tap10" disabled>+10</button>
+        </div>
+        <div class="row"><span class="label">Manual level</span><span id="manval">—</span></div>
+        <input type="range" id="manual" min="0" max="100" step="1" value="50" disabled aria-label="Manual level">
+      </div>
+
+      <div class="group">
+        <div class="row"><span class="label">Alert threshold</span><span id="alertval">—</span></div>
+        <input type="range" id="alert" min="40" max="100" step="1" value="80" aria-label="Alert threshold">
+      </div>
+
+      <div class="group">
+        <div class="label">Motion</div>
+        <div class="seg">
+          <input type="radio" name="motion" id="mo-dial" value="dial" checked><label for="mo-dial">Dial turns</label>
+          <input type="radio" name="motion" id="mo-sweep" value="sweep" disabled><label for="mo-sweep">Sweep turns</label>
+        </div>
+      </div>
+
+      <button class="btn ghost" id="change">Change chart</button>
+      <p class="note" id="chartnote">—</p>
+      <p class="note">Taps: press Space or the buttons. From code: <code>recorder.record(5)</code>, <code>recorder.set(42)</code>, or <code>recorder.element.push(v)</code>.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import './chart-recorder.js';
+
+const SEC = 1e3, MIN = 6e4, HOUR = 3.6e6, DAY = 864e5;
+const METRICS = {
+  temp: { name: 'Feedwater temperature',   unit: '°F',  max: 200,    period: DAY,  div: 24, unitMs: 0,    speeds: [1, 60, 600, 3600], def: 3, turn: '1 turn = 24 hours', chart: '24 HOUR' },
+  tps:  { name: 'Transactions per second', unit: 'TPS', max: 60,     period: MIN,  div: 60, unitMs: SEC,  window: SEC, winScale: 1,  speeds: [1, 2, 5, 10],      def: 1, jitter: .55, turn: '1 turn = 1 minute', chart: '60 SECOND' },
+  tpm:  { name: 'Transactions per minute', unit: 'TPM', max: 3000,   period: HOUR, div: 60, unitMs: MIN,  window: MIN, winScale: 1,  speeds: [1, 10, 60, 360],   def: 3, jitter: .3,  turn: '1 turn = 1 hour', chart: '60 MINUTE' },
+  tph:  { name: 'Transactions per hour',   unit: 'TPH', max: 150000, period: DAY,  div: 24, unitMs: HOUR, window: MIN, winScale: 60, speeds: [1, 60, 600, 3600], def: 3, jitter: .12, turn: '1 turn = 24 hours', chart: '24 HOUR' },
+};
+const $ = id => document.getElementById(id);
+const rec = $('rec');
+
+let M = METRICS.temp, metricKey = 'temp', speed = 600, src = 'sim', alertFrac = .8;
+let manualTarget = 100, penV = 100, taps = [];
+let simMs = Date.now(), lastSampleMs, STEP;
+
+rec.configure({ clock: () => simMs });
+
+// ---------- signal sources ----------
+const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const noise = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash(i) * (1 - u) + hash(i + 1) * u; };
+const tod = ms => { const d = new Date(ms); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + d.getMilliseconds() / 3.6e6; };
+const bump = (t, c, w) => Math.exp(-(((t - c) / w) ** 2));
+function plantTemp(ms) {
+  const h = ms / HOUR, t = tod(ms);
+  return 128 + 20 * Math.sin(2 * Math.PI * (t - 9) / 24) + 14 * (noise(h / 3.5) * 2 - 1) + 3.5 * (noise(h * 3) - .5) + 1.6 * (noise(h * 25) - .5);
+}
+function traffic(ms) {
+  const t = tod(ms), h = ms / HOUR;
+  const lam = (4 + 20 * bump(t, 12.5, 2.6) + 13 * bump(t, 19.5, 2) + 4 * bump(t, 9, 1.2)) * (1 + .3 * (noise(h / 2) - .5));
+  const x = ms / M.period, a = M.jitter;
+  let v = lam * (1 + a * 1.4 * (noise(x * 8) - .5) + a * .7 * (noise(x * 60 + 7) - .5));
+  const b = noise(x * 14 + 99); if (b > .8) v += lam * 1.3 * (b - .8) / .2;
+  v *= M.unitMs / SEC;
+  return Math.max(0, metricKey === 'tps' ? Math.round(v) : v);
+}
+const simValue = ms => metricKey === 'temp' ? plantTemp(ms) : traffic(ms);
+function tapRate(ms) {
+  let n = 0; for (let i = taps.length - 1; i >= 0 && taps[i] > ms - M.window; i--) if (taps[i] <= ms) n++;
+  return n * M.winScale;
+}
+const clampV = v => Math.max(0, Math.min(M.max, v));
+const value = ms => clampV(src === 'sim' ? simValue(ms) : src === 'tap' ? tapRate(ms) : penV);
+
+const fmtShort = v => v >= 1e5 ? Math.round(v / 1e3) + 'k' : v >= 1e3 ? (+(v / 1e3).toFixed(1)) + 'k' : (Math.round(v * 10) / 10).toString();
+const fmtVal = v => metricKey === 'temp' ? v.toFixed(1) : metricKey === 'tps' ? v.toFixed(0) : Math.round(v).toLocaleString();
+const fmtTime = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+// ---------- chart lifecycle ----------
+// Simulated source: backfill the full history so the fade is visible right away.
+function newChart(prefill) {
+  if (prefill) {
+    const from = simMs - (rec.options.revolutions) * M.period, data = [];
+    for (let t = from; t <= simMs; t += STEP) data.push({ t, v: clampV(simValue(t)) });
+    rec.setData(data);
+  } else {
+    rec.clear();
+    rec.push(value(simMs), simMs);
+  }
+  lastSampleMs = simMs;
+  $('chartnote').textContent = `Chart put on ${fmtTime(rec.chartStart)} · ${M.turn}`;
+}
+
+function buildSpeeds(idx) {
+  $('speedSeg').innerHTML = M.speeds.map((s, i) =>
+    `<input type="radio" name="spd" id="spd${i}" value="${s}"${i === idx ? ' checked' : ''}><label for="spd${i}">${s >= 3600 ? '1h/s' : s + '×'}</label>`).join('');
+  speed = M.speeds[idx];
+  $('speedSeg').querySelectorAll('input').forEach(el => el.addEventListener('change', () => speed = +el.value));
+}
+
+function setMetric(key) {
+  metricKey = key; M = METRICS[key]; STEP = M.period / 720;
+  rec.configure({ period: M.period, divisions: M.div, max: M.max, unit: M.unit, chartLabel: M.chart, alertAt: alertFrac * M.max, formatValue: v => metricKey === 'temp' ? v.toFixed(1) : fmtShort(v) });
+  $('mname').textContent = M.name; $('unit').textContent = M.unit;
+  $('totlbl').textContent = key === 'temp' ? 'On chart' : 'Last turn total';
+  $('src-tap').disabled = key === 'temp';
+  if (key === 'temp' && src === 'tap') { $('src-sim').checked = true; setSource('sim', false); }
+  manualTarget = penV = M.max * .5;
+  const sl = $('manual'); sl.max = M.max; sl.step = M.max / 200; sl.value = manualTarget;
+  updateLabels();
+  buildSpeeds(src === 'tap' ? 0 : M.def);
+  newChart(src === 'sim');
+}
+function setSource(v, restart = true) {
+  src = v;
+  $('manual').disabled = v !== 'man';
+  $('tap1').disabled = $('tap10').disabled = v !== 'tap';
+  if (v === 'man') { penV = manualTarget = clampV(simValue(simMs)); $('manual').value = manualTarget; }
+  // Taps run in real time, so the clock jumps back to now and the chart starts fresh.
+  if (v === 'tap' && restart) { simMs = Date.now(); taps = []; buildSpeeds(0); newChart(false); }
+  updateLabels();
+}
+function setStyle(v) {
+  document.documentElement.setAttribute('data-style', v);
+  const sweep = $('mo-sweep');
+  sweep.disabled = v === 'classic';
+  if (v === 'classic') $('mo-dial').checked = true;
+  else if (!sweep.dataset.touched) sweep.checked = true;
+  $('change').textContent = v === 'classic' ? 'Change chart' : 'New chart';
+  rec.configure({ style: v, motion: document.querySelector('input[name=motion]:checked').value });
+  updateLegend();
+}
+function updateLegend() {
+  const colors = rec.palette, n = rec.options.revolutions;
+  // Stepped: hard stops, one band per turn. Smooth: a sampled gradient.
+  const stops = rec.options.gradientMode === 'stepped'
+    ? colors.map((c, i) => `${c} ${i / colors.length * 100}% ${(i + 1) / colors.length * 100}%`)
+    : colors.filter((_, i) => i % 8 === 0 || i === colors.length - 1);
+  $('legend').style.background = colors.length > 1 ? `linear-gradient(90deg, ${stops.join(', ')})` : colors[0];
+  $('histval').textContent = `${n} turn${n === 1 ? '' : 's'}`;
+  $('lgEnd').textContent = `${n} turn${n === 1 ? '' : 's'} ago`;
+}
+function updateLabels() {
+  $('manval').textContent = `${fmtVal(manualTarget)} ${M.unit}`;
+  $('alertval').textContent = `${Math.round(alertFrac * 100)}% · ${fmtShort(alertFrac * M.max)} ${M.unit}`;
+  $('period').textContent = M.turn;
+}
+function record(n = 1) {
+  if (metricKey === 'temp') return;
+  if (src !== 'tap') { $('src-tap').checked = true; setSource('tap'); }
+  for (let i = 0; i < n; i++) taps.push(simMs);
+  const cutoff = simMs - HOUR; while (taps.length && taps[0] < cutoff) taps.shift();
+}
+window.recorder = {
+  element: rec,
+  record,
+  set(v) { $('src-man').checked = true; setSource('man'); manualTarget = clampV(+v); $('manual').value = manualTarget; updateLabels(); },
+  metric(k) { if (METRICS[k]) { $('m-' + k).checked = true; setMetric(k); } },
+  style(s) { if (s === 'classic' || s === 'scope') { $('st-' + s).checked = true; setStyle(s); } },
+};
+
+// ---------- loop ----------
+let prev = performance.now();
+function tick(now) {
+  const dt = Math.min(250, now - prev); prev = now;
+  const dSim = dt * speed; simMs += dSim;
+  penV += (manualTarget - penV) * (1 - Math.exp(-dSim / (M.period / 480)));
+  let n = 0;
+  while (lastSampleMs + STEP <= simMs && n++ < 3000) { lastSampleMs += STEP; rec.push(value(lastSampleMs), lastSampleMs); }
+  if (n >= 3000) lastSampleMs = simMs;
+
+  const live = value(simMs), alert = live >= alertFrac * M.max;
+  $('val').textContent = fmtVal(live);
+  $('bigwrap').classList.toggle('alert', alert);
+  $('status').classList.toggle('alert', alert);
+  $('status').textContent = `${alert ? 'ALERT · ABOVE THRESHOLD' : 'NOMINAL'} · ${fmtTime(simMs)}`;
+
+  const turn = rec.getSamples(simMs - M.period).filter(s => s.v != null);
+  if (turn.length > 1) {
+    let hi = -Infinity, lo = Infinity, sum = 0, area = 0;
+    turn.forEach((s, i) => {
+      hi = Math.max(hi, s.v); lo = Math.min(lo, s.v); sum += s.v;
+      if (i) area += (s.v + turn[i - 1].v) / 2 * (s.t - turn[i - 1].t);
+    });
+    $('hi').textContent = fmtVal(hi); $('lo').textContent = fmtVal(lo);
+    $('avg').textContent = fmtVal(sum / turn.length);
+    $('tot').textContent = metricKey === 'temp'
+      ? `${((simMs - rec.chartStart) / HOUR).toFixed(1)} h`
+      : Math.round(area / M.unitMs).toLocaleString() + ' tx';
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------- controls ----------
+document.querySelectorAll('input[name=style]').forEach(el => el.addEventListener('change', () => setStyle(el.value)));
+document.querySelectorAll('input[name=metric]').forEach(el => el.addEventListener('change', () => setMetric(el.value)));
+document.querySelectorAll('input[name=src]').forEach(el => el.addEventListener('change', () => setSource(el.value)));
+document.querySelectorAll('input[name=motion]').forEach(el => el.addEventListener('change', () => { rec.configure({ motion: el.value }); $('mo-sweep').dataset.touched = '1'; }));
+document.querySelectorAll('input[name=hmode]').forEach(el => el.addEventListener('change', () => { rec.configure({ gradientMode: el.value }); updateLegend(); }));
+$('hist').addEventListener('input', e => { rec.configure({ revolutions: +e.target.value }); updateLegend(); });
+// Raising the history on the simulated source backfills the extra turns.
+$('hist').addEventListener('change', () => { if (src === 'sim') newChart(true); });
+$('manual').addEventListener('input', e => { manualTarget = +e.target.value; updateLabels(); });
+$('alert').addEventListener('input', e => { alertFrac = +e.target.value / 100; rec.configure({ alertAt: alertFrac * M.max }); updateLabels(); });
+$('tap1').addEventListener('click', () => record(1));
+$('tap10').addEventListener('click', () => record(10));
+$('change').addEventListener('click', () => newChart(false));
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !/INPUT|BUTTON|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); record(1); }
+});
+
+document.documentElement.setAttribute('data-style', 'classic');
+setMetric('temp');
+setStyle('classic');
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
